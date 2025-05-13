@@ -1,7 +1,7 @@
 {
   "version": 4,
   "terraform_version": "1.11.4",
-  "serial": 149,
+  "serial": 144,
   "lineage": "2bbfd90d-5bff-5859-2189-f588ee8c3039",
   "outputs": {
     "admin_access_key": {
@@ -622,13 +622,13 @@
             [
               {
                 "type": "get_attr",
-                "value": "bcrypt_hash"
+                "value": "result"
               }
             ],
             [
               {
                 "type": "get_attr",
-                "value": "result"
+                "value": "bcrypt_hash"
               }
             ]
           ]

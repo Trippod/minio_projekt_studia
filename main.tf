@@ -1,6 +1,3 @@
-########################################
-# main.tf – MinIO + Docker + Terraform
-########################################
 terraform {
   required_version = ">= 1.6"
 
@@ -20,9 +17,6 @@ terraform {
   }
 }
 
-#######################
-# ZMIENNE
-#######################
 variable "minio_root_user" {
   description = "Login administratora MinIO"
   type        = string
@@ -41,9 +35,6 @@ variable "minio_root_password" {
   }
 }
 
-#######################
-# 1) Obraz i kontener
-#######################
 resource "docker_image" "minio" {
   name = "minio/minio:RELEASE.2025-04-22T22-12-26Z"
 }
@@ -76,17 +67,11 @@ resource "docker_container" "minio" {
   command = ["server", "/data", "--console-address", ":9001"]
 }
 
-#######################
-# 2) Pauza na start
-#######################
 resource "time_sleep" "wait_minio_ready" {
   depends_on      = [docker_container.minio]
   create_duration = "30s"
 }
 
-#######################
-# 3) Provider MinIO
-#######################
 provider "minio" {
   minio_server   = "127.0.0.1:9000"
   minio_user     = var.minio_root_user
@@ -94,27 +79,21 @@ provider "minio" {
   minio_ssl      = false
 }
 
-#######################
-# 4) Bucket + wersjonowanie
-#######################
 resource "minio_s3_bucket" "raw" {
-  depends_on = [time_sleep.wait_minio_ready]
-  bucket     = "raw-data"
-  acl        = "private"
+  bucket         = "raw-data"
+  acl            = "private"
+  object_locking = true
+  depends_on     = [time_sleep.wait_minio_ready]
 }
 
 resource "minio_s3_bucket_versioning" "raw_versioning" {
-  depends_on = [time_sleep.wait_minio_ready]
-  bucket     = minio_s3_bucket.raw.id
-
+  bucket = minio_s3_bucket.raw.id
   versioning_configuration {
     status = "Enabled"
   }
 }
 
-############################
-# 5) ROLE IAM
-############################
+# --- Administrator (pełny dostęp) ---
 resource "random_password" "admin_secret" {
   length  = 36
   special = false
@@ -129,7 +108,7 @@ resource "minio_iam_user" "administrator" {
 resource "minio_iam_policy" "AdministratorPolicy" {
   name   = "AdministratorPolicy"
   policy = jsonencode({
-    Version   = "2012-10-17",
+    Version = "2012-10-17",
     Statement = [{
       Effect   = "Allow",
       Action   = ["s3:*"],
@@ -143,6 +122,7 @@ resource "minio_iam_user_policy_attachment" "admin_attach" {
   policy_name = minio_iam_policy.AdministratorPolicy.name
 }
 
+# --- Viewer ---
 resource "random_password" "viewer_secret" {
   length  = 30
   special = false
@@ -157,7 +137,7 @@ resource "minio_iam_user" "viewer" {
 resource "minio_iam_policy" "ViewerPolicy" {
   name   = "ViewerPolicy"
   policy = jsonencode({
-    Version   = "2012-10-17",
+    Version = "2012-10-17",
     Statement = [
       {
         Effect   = "Allow",
@@ -178,6 +158,7 @@ resource "minio_iam_user_policy_attachment" "viewer_attach" {
   policy_name = minio_iam_policy.ViewerPolicy.name
 }
 
+# --- Uploader ---
 resource "random_password" "uploader_secret" {
   length  = 30
   special = false
@@ -192,7 +173,7 @@ resource "minio_iam_user" "uploader" {
 resource "minio_iam_policy" "UploaderPolicy" {
   name   = "UploaderPolicy"
   policy = jsonencode({
-    Version   = "2012-10-17",
+    Version = "2012-10-17",
     Statement = [
       {
         Effect   = "Allow",
@@ -201,11 +182,11 @@ resource "minio_iam_policy" "UploaderPolicy" {
       },
       {
         Effect   = "Allow",
-        "Action"   = [
-		  "s3:PutObject",
-		  "s3:ListMultipartUploadParts",
-		  "s3:AbortMultipartUpload"
-			],
+        Action   = [
+          "s3:PutObject",
+          "s3:ListMultipartUploadParts",
+          "s3:AbortMultipartUpload"
+        ],
         Resource = ["arn:aws:s3:::raw-data/*"]
       }
     ]
@@ -217,9 +198,6 @@ resource "minio_iam_user_policy_attachment" "uploader_attach" {
   policy_name = minio_iam_policy.UploaderPolicy.name
 }
 
-#######################
-# 6) Outputy
-#######################
 output "console_url" {
   value = "http://localhost:9001"
 }
@@ -259,3 +237,4 @@ output "uploader_secret_key" {
   value     = random_password.uploader_secret.result
   sensitive = true
 }
+

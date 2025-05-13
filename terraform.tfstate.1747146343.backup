@@ -1,7 +1,7 @@
 {
   "version": 4,
   "terraform_version": "1.11.4",
-  "serial": 149,
+  "serial": 145,
   "lineage": "2bbfd90d-5bff-5859-2189-f588ee8c3039",
   "outputs": {
     "admin_access_key": {
@@ -481,36 +481,6 @@
     },
     {
       "mode": "managed",
-      "type": "minio_s3_bucket_versioning",
-      "name": "raw_versioning",
-      "provider": "provider[\"registry.terraform.io/aminueza/minio\"]",
-      "instances": [
-        {
-          "schema_version": 0,
-          "attributes": {
-            "bucket": "raw-data",
-            "id": "raw-data",
-            "versioning_configuration": [
-              {
-                "exclude_folders": false,
-                "excluded_prefixes": null,
-                "status": "Enabled"
-              }
-            ]
-          },
-          "sensitive_attributes": [],
-          "private": "bnVsbA==",
-          "dependencies": [
-            "docker_container.minio",
-            "docker_image.minio",
-            "minio_s3_bucket.raw",
-            "time_sleep.wait_minio_ready"
-          ]
-        }
-      ]
-    },
-    {
-      "mode": "managed",
       "type": "random_password",
       "name": "admin_secret",
       "provider": "provider[\"registry.terraform.io/hashicorp/random\"]",
@@ -622,13 +592,13 @@
             [
               {
                 "type": "get_attr",
-                "value": "bcrypt_hash"
+                "value": "result"
               }
             ],
             [
               {
                 "type": "get_attr",
-                "value": "result"
+                "value": "bcrypt_hash"
               }
             ]
           ]
